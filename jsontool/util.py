@@ -13,6 +13,15 @@ def JsonFile(*args, **kwargs):
         return json.load(open(fname, *args, **kwargs))
     return _ret
 
+class JsonWriter():
+    def __init__(self, stream):
+        self.stream = stream
+
+    def write(self, obj):
+        self.stream.write(json.dumps(obj))
+        self.stream.write("\n")
+
+
 def load_jsonl(fstream):
     if isinstance(fstream, str):
         with open(fstream) as fstream_:
