@@ -1,6 +1,6 @@
 // A simple grammar for tex.py expressions
 
-JSONPATH: /\$\.[@.\[\].*,:-?()0-9a-zA-Z-_]+[\[\]*0-9a-zA-Z]/
+JSONPATH: /\$\.[@.\[\]().*,:-?()0-9a-zA-Z-_]*[\]*0-9a-zA-Z@]/
 BOOLEAN: /(True)|(False)/
 COMPARISON_OP: /[<>]=?/
 EQ_OP: /[!=]=/

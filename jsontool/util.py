@@ -3,6 +3,7 @@ Utilities
 """
 
 import re
+import csv
 import json
 import logging
 
@@ -14,18 +15,19 @@ def JsonFile(*args, **kwargs):
     return _ret
 
 class JsonWriter():
-    def __init__(self, stream):
+    def __init__(self, stream, indent=None):
         self.stream = stream
+        self.indent = indent
 
     def write(self, obj):
-        self.stream.write(json.dumps(obj))
+        self.stream.write(json.dumps(obj, indent=self.indent))
         self.stream.write("\n")
 
 
 def load_jsonl(fstream):
     if isinstance(fstream, str):
         with open(fstream) as fstream_:
-            return load_jsonl(fstream_)
+            return list(load_jsonl(fstream_))
 
     return (json.loads(line) for line in fstream)
 
@@ -132,3 +134,12 @@ def list_obj(obj):
 
     visit_obj(_to_str, obj)
     return ret
+
+def load_csv(fstream, delimiter="\t"):
+    reader = csv.reader(fstream, delimiter=delimiter)
+
+    header = next(reader)
+    header = [re.sub("[^a-zA-Z0-9]", "", h) for h in header]
+    for row in reader:
+        obj = {key: value for key, value in zip(header, row)}
+        yield obj

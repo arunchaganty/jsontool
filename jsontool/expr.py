@@ -11,6 +11,10 @@ from lark import Lark, UnexpectedInput
 from lark import Transformer as _Transformer
 from jsonpath_ng import parse as parse_jsonpath
 
+def _dbg(x):
+    pdb.set_trace()
+    return x
+
 def _print(x):
     print(x)
     return x
@@ -20,6 +24,7 @@ _FUNCTIONS = {
     "mean": lambda vs: np.mean(vs) if vs else None,
     "sum": lambda vs: np.sum(vs) if vs else None,
     "max": lambda vs: np.max(vs) if vs else None,
+    "min": lambda vs: np.min(vs) if vs else None,
     "median": lambda vs: np.median(vs) if vs else None,
     "len": len,
     "not": lambda v: not v,
@@ -31,6 +36,8 @@ _FUNCTIONS = {
     "find": lambda v, v_: len(re.findall(v, v_)) > 0,
     "imatch": lambda v, v_: re.match(v, v_, flags=re.IGNORECASE) != None,
     "ifind": lambda v, v_: len(re.findall(v, v_, flags=re.IGNORECASE)) > 0,
+    "all": lambda vs: all(vs),
+    "any": lambda vs: any(vs),
 }
 
 def _fn(v):
@@ -66,9 +73,12 @@ class Transformer(_Transformer):
 
         def _ret(obj):
             vs = [arg(obj) for arg in args]
-            # Each of these is a list
-            assert all(isinstance(v, list) for v in vs)
+            # Each of these is either a list or a singleton
+            cnts = [len(v) if isinstance(v, list) else 1 for v in vs]
+            max_cnt = max(cnts)
+            assert all(c == 1 or c == max_cnt for c in cnts), "Map arguments have unequal argument sizes: {}".format(vs)
 
+            vs = [[v] * max_cnt if c == 1 else v for v, c in zip(vs, cnts)]
             ret = [fn(*vs_) for vs_ in zip(*vs)]
             ret = _skip_nones(ret)
 
@@ -163,6 +173,7 @@ def test_parse_expr():
 
     assert parse_expr("$.apples < 3")(obj) is True
     assert parse_expr("$.apples <= 1")(obj) is True
+    assert parse_expr("$.apples == 1")(obj) is True
     assert parse_expr("$.apples + $.bananas.apples")(obj) == 1 + 2
 
     assert parse_expr("$.oranges")(obj) is True
