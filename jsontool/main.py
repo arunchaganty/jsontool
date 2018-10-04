@@ -16,7 +16,7 @@ from pprint import pprint
 from tqdm import tqdm, trange
 from .expr import parse_expr
 from .util import load_jsonl, list_schema, list_obj, JsonWriter, load_csv
-from .schema import compile_schema, apply_schema
+from .schema import parse_schema, apply_schema
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ def do_pp(args):
         writer.write(obj)
 
 def do_extract(args):
-    schema = compile_schema(json.loads(args.schema))
+    schema = parse_schema(json.loads(args.schema))
 
     writer = JsonWriter(args.output)
 
@@ -84,33 +84,33 @@ def main():
     command_parser = subparsers.add_parser('csv', help='Convert to csv')
     command_parser.add_argument('-o', '--output', type=argparse.FileType('w'), default=sys.stdout, help="Output CSV file")
     command_parser.add_argument('-d', '--delimiter', default='\t', help="Delimiter to use to both parse input and write output.")
-    command_parser.add_argument('input', type=argparse.FileType('r'), default=sys.stdin, help="Input JSONL file")
+    command_parser.add_argument('-i', '--input', type=argparse.FileType('r'), default=sys.stdin, help="Input JSONL file")
     command_parser.set_defaults(func=do_csv)
 
     command_parser = subparsers.add_parser('filter', help='Filter json objects')
     command_parser.add_argument('-o', '--output', type=argparse.FileType('w'), default=sys.stdout, help="Output JSONL file")
     command_parser.add_argument('-e', '--exprs', type=str, nargs="+", required=True, help="Filter expressions.")
     command_parser.add_argument('-a', '--all', action="store_true", help="Do all expressions have to match?")
-    command_parser.add_argument('input', type=argparse.FileType('r'), default=sys.stdin, help="Input JSONL file")
+    command_parser.add_argument('-i', '--input', type=argparse.FileType('r'), default=sys.stdin, help="Input JSONL file")
     command_parser.set_defaults(func=do_filter)
 
     command_parser = subparsers.add_parser('import', help='Import from another file format')
     command_parser.add_argument('-o', '--output', type=argparse.FileType('w'), default=sys.stdout, help="Output JSONL file")
     command_parser.add_argument('-f', '--format', choices=["csv"], default="csv", help="Which file format to use.")
-    command_parser.add_argument('input', type=argparse.FileType('r'), default=sys.stdin, help="Input file")
+    command_parser.add_argument('-i', '--input', type=argparse.FileType('r'), default=sys.stdin, help="Input JSONL file")
     command_parser.set_defaults(func=do_import)
 
     command_parser = subparsers.add_parser('pp', help='Pretty print')
     command_parser.add_argument('-o', '--output', type=argparse.FileType('w'), default=sys.stdout, help="Output JSONL file")
     command_parser.add_argument('-t', '--indent', type=int, default=2, help="Indentation")
-    command_parser.add_argument('input', type=argparse.FileType('r'), default=sys.stdin, help="Input JSONL file")
+    command_parser.add_argument('-i', '--input', type=argparse.FileType('r'), default=sys.stdin, help="Input JSONL file")
     command_parser.set_defaults(func=do_pp)
 
     command_parser = subparsers.add_parser('extract', help='Extract fields from a JSON')
     command_parser.add_argument('-o', '--output', type=argparse.FileType('w'), default=sys.stdout, help="Output JSONL file")
     command_parser.add_argument('-s', '--schema', type=str, required=True, help="Schema to parse.")
     command_parser.add_argument('-E', '--expand-list', action='store_true', help="Expand lists.")
-    command_parser.add_argument('input', type=argparse.FileType('r'), default=sys.stdin, help="Input JSONL file")
+    command_parser.add_argument('-i', '--input', type=argparse.FileType('r'), default=sys.stdin, help="Input JSONL file")
     command_parser.set_defaults(func=do_extract)
 
     args = parser.parse_args()
@@ -118,7 +118,11 @@ def main():
         parser.print_help()
         sys.exit(1)
     else:
-        args.func(args)
+        try:
+            args.func(args)
+        except BrokenPipeError:
+            sys.stderr.write("Unexpected broken pipe\n")
+            pass
 
 if __name__ == "__main__":
     main()

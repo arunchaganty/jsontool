@@ -7,16 +7,14 @@ Extract schema
 import pdb
 from .expr import parse_expr
 
-def compile_schema(obj):
+def parse_schema(obj):
     if isinstance(obj, dict):
-        return {key: compile_schema(value) for key, value in obj.items()}
+        return {key: parse_schema(value) for key, value in obj.items()}
     elif isinstance(obj, list):
-        return [compile_schema(value) for value in obj]
-    elif isinstance(obj, str) and obj.startswith('$'):
+        return [parse_schema(value) for value in obj]
+    else:
         value = obj
         return parse_expr(value)
-    else:
-        return obj
 
 def apply_schema(schema, obj):
     if isinstance(schema, dict):
@@ -38,7 +36,7 @@ def test_schema():
         }
 
     def test(schema, obj):
-        return apply_schema(compile_schema(schema), obj)
+        return apply_schema(parse_schema(schema), obj)
 
     assert test("x", obj) == "x"
     assert test(9, obj) == 9

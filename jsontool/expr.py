@@ -36,8 +36,10 @@ _FUNCTIONS = {
     "find": lambda v, v_: len(re.findall(v, v_)) > 0,
     "imatch": lambda v, v_: re.match(v, v_, flags=re.IGNORECASE) != None,
     "ifind": lambda v, v_: len(re.findall(v, v_, flags=re.IGNORECASE)) > 0,
-    "all": lambda vs: all(vs),
-    "any": lambda vs: any(vs),
+    "all": all,
+    "any": any,
+    "apply": (lambda x, y: x(y)),
+    "zip": lambda *vs: list(zip(*vs)),
 }
 
 def _fn(v):
@@ -51,10 +53,24 @@ def _skip_nones(vs):
     ret = [v for v in vs if v is not None]
     return ret if ret else None
 
+class JsonPath():
+    def __init__(self, path):
+        self.path = path
+
+    def __repr__(self):
+        return f"<jsonpath: {self.path}>"
+
+    def __str__(self):
+        return f"{self.path}"
+
+    def __call__(self, obj):
+        return _condense([match.value for match in self.path.find(obj)])
+
 class Transformer(_Transformer):
     def jsonpath(self, items):
         path = parse_jsonpath(items[0])
-        return lambda obj: _condense([match.value for match in path.find(obj)])
+        #return lambda obj: _condense([match.value for match in path.find(obj)])
+        return JsonPath(path)
 
     boolean = lambda self, items: _fn(items[0] == "True")
     number = lambda self, items: _fn(float(items[0]))
@@ -135,6 +151,11 @@ class Transformer(_Transformer):
         if len(items) == 3:
             cond, l, r = items
             return lambda obj: l(obj) if cond(obj) else r(obj)
+
+    def apply_expr(self, items):
+        assert len(items) == 2
+        arg, fn = items
+        return lambda obj: fn(arg(obj))
 
 GRAMMAR_PATH = os.path.join(os.path.dirname(__file__), "grammar.lark")
 with open(GRAMMAR_PATH) as f:

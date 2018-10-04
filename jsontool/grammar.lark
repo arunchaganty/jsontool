@@ -21,6 +21,8 @@ literal: /[a-zA-Z][a-zA-Z0-9]*/
 ?reduce_expr: literal "(" [expr ("," expr)*] ")"
 ?function_expr: map_expr | reduce_expr
 
+?apply_expr: expr "|>" expr
+
 ?arith_expr: [arith_expr arith_op] arith_atom
 ?arith_atom: number
             | jsonpath
@@ -40,6 +42,7 @@ literal: /[a-zA-Z][a-zA-Z0-9]*/
     | conditional_expr
     | boolean_expr
     | function_expr
+    | apply_expr
     | string
 
 %import common.SIGNED_NUMBER
